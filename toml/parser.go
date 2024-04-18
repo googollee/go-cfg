@@ -21,5 +21,8 @@ func (TOML) TagName() string {
 }
 
 func (TOML) Parse(r io.Reader, a any) error {
-	return toml.NewDecoder(r).Decode(a)
+	if _, err := toml.NewDecoder(r).Decode(a); err != nil {
+		return err
+	}
+	return nil
 }
