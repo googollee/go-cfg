@@ -1,5 +1,8 @@
 module github.com/googollee/go-cfg
 
-go 1.22.2
+go 1.20
 
-require gopkg.in/yaml.v3 v3.0.1
+require (
+	github.com/BurntSushi/toml v1.3.2
+	gopkg.in/yaml.v3 v3.0.1
+)
