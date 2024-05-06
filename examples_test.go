@@ -12,6 +12,12 @@ type Config struct {
 	Int int    `cfg:"int"`
 }
 
+// An example to load `Config` from sources orderly:
+// - from a config file
+// - from env variables
+// - from flags
+//
+// The same field in the flag overwrites the env variable, and the same file in the env variable overwrites the value in the config file.
 func ExampleConfig() {
 	fromFlags := cfg.FromFlags[Config]("demo_")
 
