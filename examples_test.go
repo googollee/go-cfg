@@ -18,10 +18,15 @@ type Config struct {
 // - from flags
 //
 // The same field in the flag overwrites the env variable, and the same file in the env variable overwrites the value in the config file.
-func ExampleConfig() {
-	fromFlags := cfg.FromFlags[Config]("demo_")
+func ExampleParser() {
+	parser := cfg.Parse[Config](
+		cfg.FromFlags("demo", cfg.FlagSplitter(".")),
+		cfg.FromEnv("DEMO", cfg.EnvSplitter("_")),
+		cfg.FromFile("config", "./config.json", "config file",
+			cfg.FileFormat(cfg.JSON, cfg.YAML, cfg.TOML),
+			cfg.FileFlag(flag.CommandLine)),
+	)
 
-	cfgFile := flag.String("config", "./config.yaml", "config file")
 	help := flag.Bool("help", false, "show help")
 	flag.Parse()
 
@@ -31,8 +36,8 @@ func ExampleConfig() {
 	}
 
 	var config Config
-	if err := cfg.Parse(&config, cfg.FromFile(*cfgFile /* optional file formats: cfg.YAML, cfg.JSON, cfg.TOML */), cfg.FromEnv("DEMO_"), fromFlags); err != nil {
-		fmt.Println("parse config file %q error: %v", *cfgFile, err)
+	if err := parser.Parse(&config); err != nil {
+		fmt.Println("load config error:", err)
 		return
 	}
 
