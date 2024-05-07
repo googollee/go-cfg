@@ -19,6 +19,6 @@ func (JSON) TagName() string {
 	return "json"
 }
 
-func (JSON) Parse(r io.Reader, a any) error {
+func (JSON) Decode(r io.Reader, a any) error {
 	return json.NewDecoder(r).Decode(a)
 }

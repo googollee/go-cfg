@@ -2,66 +2,80 @@ package cfg
 
 import (
 	"flag"
+	"fmt"
 	"io"
+	"os"
+	"path/filepath"
 	"reflect"
 )
 
-type FileFormat interface {
+type FileDecoder interface {
 	ExtNames() []string
 	MimeNames() []string
 	TagName() string
-	Parse(r io.Reader, a any) error
+	Decode(r io.Reader, a any) error
 }
 
-type FileOption func(s *fileSource) error
+type FileOption func(s *fileSource)
 
 func FileFlagSet(set FlagSet) FileOption {
-	if set == nil {
-		set = flag.CommandLine
-	}
-
-	return func(s *fileSource) error {
-		s.flagset = set
-		return nil
+	return func(src *fileSource) {
+		src.flagset = set
 	}
 }
 
-func FileSplitter(splitter string) FileOption {
-	return func(s *fileSource) error {
-		s.splitter = splitter
-		return nil
+func FileDecoders(decoder ...FileDecoder) FileOption {
+	return func(src *fileSource) {
+		src.decoders = decoder
 	}
 }
 
 type fileSource struct {
-	prefix   string
-	splitter string
 	flagset  FlagSet
-	values   any
-	keys     [][]string
+	decoders []FileDecoder
+
+	filename    string
+	ext2decoder map[string]FileDecoder
 }
 
-func FromFlagFile(prefix, flagName, flagValue, flagUsage string, opt ...FileOption) (Source, error) {
+func FromFile(flagName, flagValue, flagUsage string, opt ...FileOption) Source {
 	ret := &fileSource{
-		prefix:   prefix,
-		splitter: ".",
-		flagset:  flag.CommandLine,
+		flagset:     flag.CommandLine,
+		decoders:    []FileDecoder{JSON{}},
+		ext2decoder: make(map[string]FileDecoder),
 	}
 
-	for _, o := range opt {
-		if err := o(ret); err != nil {
-			return nil, err
+	for _, optFn := range opt {
+		optFn(ret)
+	}
+
+	for _, decoder := range ret.decoders {
+		for _, ext := range decoder.ExtNames() {
+			ret.ext2decoder[ext] = decoder
 		}
 	}
 
-	return ret, nil
+	ret.flagset.StringVar(&ret.filename, flagName, flagValue, flagUsage)
+
+	return ret
 }
 
 func (s *fileSource) Setup(t reflect.Type) error {
-	s.values = reflect.New(t)
 	return nil
 }
 
 func (s *fileSource) Parse(v any) error {
-	return nil
+	ext := filepath.Ext(s.filename)
+	decoder := s.ext2decoder[ext]
+	if decoder == nil {
+		return fmt.Errorf("parse %q error: no decoder", s.filename)
+	}
+
+	f, err := os.Open(s.filename)
+	if err != nil {
+		return fmt.Errorf("parse %q error: %w", s.filename, err)
+	}
+	defer f.Close()
+
+	return decoder.Decode(f, v)
 }
