@@ -26,13 +26,26 @@ func FileFlagSet(set FlagSet) FileOption {
 	}
 }
 
-type fileSource struct {
-	flagset FlagSet
+func FileSplitter(splitter string) FileOption {
+	return func(s *fileSource) error {
+		s.splitter = splitter
+		return nil
+	}
 }
 
-func FromFile(flagName, flagValue, flagUsage string, opt ...FileOption) (Source, error) {
+type fileSource struct {
+	prefix   string
+	splitter string
+	flagset  FlagSet
+	values   any
+	keys     [][]string
+}
+
+func FromFlagFile(prefix, flagName, flagValue, flagUsage string, opt ...FileOption) (Source, error) {
 	ret := &fileSource{
-		flagset: flag.CommandLine,
+		prefix:   prefix,
+		splitter: ".",
+		flagset:  flag.CommandLine,
 	}
 
 	for _, o := range opt {
@@ -45,6 +58,7 @@ func FromFile(flagName, flagValue, flagUsage string, opt ...FileOption) (Source,
 }
 
 func (s *fileSource) Setup(t reflect.Type) error {
+	s.values = reflect.New(t)
 	return nil
 }
 
