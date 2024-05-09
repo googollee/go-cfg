@@ -2,6 +2,7 @@ package cfg
 
 import (
 	"encoding"
+	"flag"
 	"time"
 )
 
@@ -15,5 +16,5 @@ type FlagSet interface {
 	IntVar(p *int, name string, value int, usage string)
 	StringVar(p *string, name string, value string, usage string)
 	TextVar(p encoding.TextUnmarshaler, name string, value encoding.TextMarshaler, usage string)
-	Var(value Value, name string, usage string)
+	Var(value flag.Value, name string, usage string)
 }

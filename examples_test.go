@@ -1,3 +1,4 @@
+//go:build demo
 package cfg_test
 
 import (
