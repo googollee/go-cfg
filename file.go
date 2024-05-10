@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"strings"
 )
 
 type FileDecoder interface {
@@ -65,7 +66,7 @@ func (s *fileSource) Setup(t reflect.Type) error {
 }
 
 func (s *fileSource) Parse(v any) error {
-	ext := filepath.Ext(s.filename)
+	ext := strings.TrimLeft(filepath.Ext(s.filename), ".")
 	decoder := s.ext2decoder[ext]
 	if decoder == nil {
 		return fmt.Errorf("parse %q error: no decoder", s.filename)
