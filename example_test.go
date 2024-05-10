@@ -49,7 +49,7 @@ func ExampleParser() {
 	}
 
 	if *help {
-		flag.Usage()
+		set.Usage()
 		return
 	}
 
