@@ -25,6 +25,9 @@ type Config struct {
 //
 // The same field in the flag overwrites the env variable, and the same file in the env variable overwrites the value in the config file.
 func ExampleParser() {
+	os.Setenv("DEMO_INNER_I", "20")
+	os.Setenv("DEMO_INNER_STR", "inner_str")
+
 	set := flag.NewFlagSet("demo", flag.PanicOnError)
 
 	parser := cfg.Parse[Config](
@@ -36,8 +39,14 @@ func ExampleParser() {
 	)
 
 	help := set.Bool("help", false, "show help")
-	set.Parse([]string{"--config", "./testdata/config.json", "--demo.inner.i", "20"})
-	os.Setenv("DEMO_INNER_STR", "inner_str")
+	if err := set.Parse([]string{
+		"--config", "./testdata/config.json",
+		"--demo.inner.str", "overwrited_inner_str",
+		"--demo.str", "overwrited_out_str",
+	}); err != nil {
+		fmt.Println("flag error:", err)
+		return
+	}
 
 	if *help {
 		flag.Usage()
@@ -53,5 +62,5 @@ func ExampleParser() {
 	fmt.Println("config:", config)
 
 	// Output:
-	// config: {outer_str 10 {inner_str 20}}
+	// config: {overwrited_out_str 10 {overwrited_inner_str 20}}
 }
