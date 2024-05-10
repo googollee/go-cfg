@@ -1,6 +1,8 @@
 package cfg
 
 import (
+	"context"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"io"
@@ -15,6 +17,16 @@ type FileDecoder interface {
 	MimeNames() []string
 	TagName() string
 	Decode(r io.Reader, a any) error
+}
+
+type JSON struct{}
+
+func (JSON) ExtNames() []string  { return []string{"json", "js"} }
+func (JSON) MimeNames() []string { return []string{"application/javascript", "application/json"} }
+func (JSON) TagName() string     { return "json" }
+
+func (JSON) Decode(r io.Reader, a any) error {
+	return json.NewDecoder(r).Decode(a)
 }
 
 type FileOption func(s *fileSource)
@@ -65,7 +77,7 @@ func (s *fileSource) Setup(t reflect.Type) error {
 	return nil
 }
 
-func (s *fileSource) Parse(v any) error {
+func (s *fileSource) Parse(ctx context.Context, v any) error {
 	ext := strings.TrimLeft(filepath.Ext(s.filename), ".")
 	decoder := s.ext2decoder[ext]
 	if decoder == nil {

@@ -1,6 +1,7 @@
 package cfg
 
 import (
+	"context"
 	"flag"
 	"testing"
 
@@ -21,7 +22,7 @@ func TestFileSource(t *testing.T) {
 	}
 
 	var config Config
-	if err := src.Parse(&config); err != nil {
+	if err := src.Parse(context.Background(), &config); err != nil {
 		t.Fatal("parse json config error:", err)
 	}
 
