@@ -3,7 +3,6 @@ package cfg
 import (
 	"context"
 	"flag"
-	"fmt"
 	"reflect"
 	"slices"
 )
@@ -58,7 +57,6 @@ func (s *flagSource) Parse(ctx context.Context, v any) error {
 	}
 
 	for _, fv := range s.values {
-		fmt.Println(fv)
 		if !fv.Valid() {
 			continue
 		}
