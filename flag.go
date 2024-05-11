@@ -4,7 +4,6 @@ import (
 	"context"
 	"flag"
 	"reflect"
-	"slices"
 )
 
 type FlagOption func(*flagSource)
@@ -47,14 +46,34 @@ func FromFlag(prefix string, opt ...FlagOption) Source {
 }
 
 func (s *flagSource) Setup(t reflect.Type) error {
-	return s.setupType(t, nil, s.prefix)
+	return walkFields(reflect.New(t), s.prefix, s.splitter, nil, func(key string, index []int, v reflect.Value) error {
+		v = digPtr(v)
+
+		switch v.Kind() {
+		case reflect.Int:
+			nv := &nullInt[int]{}
+			s.flagset.TextVar(nv, key, &nullInt[int]{}, "")
+			nv.index = index
+			s.values = append(s.values, nv)
+		case reflect.Int64:
+			nv := &nullInt[int64]{}
+			s.flagset.TextVar(nv, key, &nullInt[int]{}, "")
+			nv.index = index
+			s.values = append(s.values, nv)
+		case reflect.String:
+			nv := &nullString{}
+			s.flagset.TextVar(nv, key, &nullString{}, "")
+			nv.index = index
+			s.values = append(s.values, nv)
+		default:
+			panic("unknown type " + v.Type().String())
+		}
+		return nil
+	})
 }
 
 func (s *flagSource) Parse(ctx context.Context, v any) error {
-	value := reflect.ValueOf(v)
-	if value.Kind() == reflect.Ptr {
-		value = value.Elem()
-	}
+	value := digPtr(reflect.ValueOf(v))
 
 	for _, fv := range s.values {
 		if !fv.Valid() {
@@ -62,46 +81,6 @@ func (s *flagSource) Parse(ctx context.Context, v any) error {
 		}
 
 		fv.CopyTo(value.FieldByIndex(fv.Index()))
-	}
-
-	return nil
-}
-
-func (s *flagSource) setupType(t reflect.Type, index []int, prefix string) error {
-	if t.Kind() == reflect.Ptr {
-		t = t.Elem()
-	}
-
-	for i := 0; i < t.NumField(); i++ {
-		field := t.Field(i)
-		if !field.IsExported() {
-			continue
-		}
-
-		key := prefix + s.splitter + field.Tag.Get("cfg")
-		switch field.Type.Kind() {
-		case reflect.Struct:
-			if err := s.setupType(field.Type, slices.Clip(append(index, i)), key); err != nil {
-				return err
-			}
-		case reflect.Int:
-			nv := &nullInt[int]{}
-			s.flagset.TextVar(nv, key, &nullInt[int]{}, "")
-			nv.index = append(index, i)
-			s.values = append(s.values, nv)
-		case reflect.Int64:
-			nv := &nullInt[int64]{}
-			s.flagset.TextVar(nv, key, &nullInt[int]{}, "")
-			nv.index = append(index, i)
-			s.values = append(s.values, nv)
-		case reflect.String:
-			nv := &nullString{}
-			s.flagset.TextVar(nv, key, &nullString{}, "")
-			nv.index = append(index, i)
-			s.values = append(s.values, nv)
-		default:
-			panic("unknown type " + field.Type.String())
-		}
 	}
 
 	return nil
