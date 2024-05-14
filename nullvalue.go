@@ -10,6 +10,7 @@ import (
 )
 
 type flagValue interface {
+	Init(index []int)
 	Index() []int
 	Valid() bool
 	CopyTo(value reflect.Value) bool
@@ -24,6 +25,10 @@ type nullBase struct {
 
 func (nb *nullBase) Index() []int { return nb.index }
 func (nb *nullBase) Valid() bool  { return nb.valid }
+func (nb *nullBase) Init(index []int) {
+	nb.index = index
+	nb.valid = false
+}
 
 type nullText struct {
 	nullBase

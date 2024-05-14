@@ -19,14 +19,14 @@ func TestEnvSource(t *testing.T) {
 	}
 
 	for key, value := range map[string]string{
-		"DEMO_STR":       "outer_str",
-		"DEMO_I":         "10",
-		"DEMO_INNER_STR": "inner_str",
+		"TEST_STR":       "outer_str",
+		"TEST_I":         "10",
+		"TEST_INNER_STR": "inner_str",
 	} {
 		os.Setenv(key, value)
 	}
 
-	src := FromEnv("demo", EnvSplitter("_"))
+	src := FromEnv("test", EnvSplitter("_"))
 	var config Config
 	config.Inner.I = 20
 	if err := src.Parse(context.Background(), &config); err != nil {
@@ -37,8 +37,8 @@ func TestEnvSource(t *testing.T) {
 		Str: "outer_str",
 		I:   10,
 		Inner: struct {
-			Str string "cfg:\"str\""
-			I   int    "cfg:\"i\""
+			Str string `cfg:"str"`
+			I   int    `cfg:"i"`
 		}{
 			Str: "inner_str",
 			I:   20,

@@ -1,21 +1,28 @@
 package cfg_test
 
 import (
+	"bytes"
 	"context"
 	"flag"
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/googollee/go-cfg"
 )
 
 type Config struct {
-	Str   string `cfg:"str"`
-	I     int    `cfg:"i"`
-	Inner struct {
-		Str string `cfg:"str"`
-		I   int    `cfg:"i"`
-	} `cfg:"inner"`
+	Str     string `cfg:"str,,string value from file"`
+	I       int    `cfg:"int,,int value from file"`
+	FromEnv struct {
+		Str string `cfg:"str,none,string value from env"`
+	} `cfg:"from_env"`
+	FromFlag struct {
+		Str string `cfg:"str,none,string value from flags"`
+	} `cfg:"from_flag"`
+	WithDefault struct {
+		Str string `cfg:"str,default_value,string value with default"`
+	} `cfg:"with_default"`
 }
 
 // An example to load `Config` from sources orderly:
@@ -25,8 +32,7 @@ type Config struct {
 //
 // The same field in the flag overwrites the env variable, and the same file in the env variable overwrites the value in the config file.
 func ExampleParser() {
-	os.Setenv("DEMO_INNER_I", "20")
-	os.Setenv("DEMO_INNER_STR", "inner_str")
+	os.Setenv("DEMO_FROM_ENV_STR", "string_from_env")
 
 	set := flag.NewFlagSet("demo", flag.PanicOnError)
 
@@ -38,20 +44,18 @@ func ExampleParser() {
 		cfg.FromFlag("demo", cfg.FlagSplitter("."), cfg.FlagWithFlagSet(set)),
 	)
 
-	help := set.Bool("help", false, "show help")
 	if err := set.Parse([]string{
 		"--config", "./testdata/config.json",
-		"--demo.inner.str", "overwrited_inner_str",
-		"--demo.str", "overwrited_out_str",
+		"--demo.from_flag.str", "string_from_flag",
 	}); err != nil {
 		fmt.Println("flag error:", err)
 		return
 	}
 
-	if *help {
-		set.Usage()
-		return
-	}
+	var buf bytes.Buffer
+	set.SetOutput(&buf)
+	set.Usage()
+	fmt.Println(strings.ReplaceAll(buf.String(), "\t", "  "))
 
 	var config Config
 	if err := parser.Parse(context.Background(), &config); err != nil {
@@ -62,5 +66,19 @@ func ExampleParser() {
 	fmt.Println("config:", config)
 
 	// Output:
-	// config: {overwrited_out_str 10 {overwrited_inner_str 20}}
+	// Usage of demo:
+	//   -config string
+	//       config file (default "./testdata/config.json")
+	//   -demo.from_env.str value
+	//       string value from env (default none)
+	//   -demo.from_flag.str value
+	//       string value from flags (default none)
+	//   -demo.int value
+	//       int value from file
+	//   -demo.str value
+	//       string value from file
+	//   -demo.with_default.str value
+	//       string value with default (default default_value)
+	//
+	// config: {string 10 {string_from_env} {string_from_flag} {default_value}}
 }

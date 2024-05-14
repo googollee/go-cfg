@@ -54,15 +54,12 @@ func (s *flagSource) Setup(t reflect.Type) error {
 		switch v.Kind() {
 		case reflect.Int:
 			nv := &nullInt[int]{}
-			nv.index = meta.Index
 			flagValue = nv
 		case reflect.Int64:
 			nv := &nullInt[int64]{}
-			nv.index = meta.Index
 			flagValue = nv
 		case reflect.String:
 			nv := &nullString{}
-			nv.index = meta.Index
 			flagValue = nv
 		default:
 			panic("unknown type " + v.Type().String())
@@ -74,7 +71,8 @@ func (s *flagSource) Setup(t reflect.Type) error {
 			}
 		}
 
-		s.flagset.TextVar(flagValue, meta.FullKey, flagValue, "")
+		s.flagset.TextVar(flagValue, meta.FullKey, flagValue, meta.Usage)
+		flagValue.Init(meta.Index)
 		s.values = append(s.values, flagValue)
 
 		return nil
@@ -84,12 +82,16 @@ func (s *flagSource) Setup(t reflect.Type) error {
 func (s *flagSource) Parse(ctx context.Context, v any) error {
 	value := digPtr(reflect.ValueOf(v))
 
-	for _, fv := range s.values {
-		if !fv.Valid() {
-			continue
+	for _, flagValue := range s.values {
+		fieldValue := value.FieldByIndex(flagValue.Index())
+
+		if !flagValue.Valid() {
+			if !fieldValue.IsZero() {
+				continue
+			}
 		}
 
-		fv.CopyTo(value.FieldByIndex(fv.Index()))
+		flagValue.CopyTo(fieldValue)
 	}
 
 	return nil
