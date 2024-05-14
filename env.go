@@ -2,6 +2,7 @@ package cfg
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"reflect"
 	"strings"
@@ -52,13 +53,13 @@ func (s *envSource) Parse(ctx context.Context, v any) error {
 		case reflect.Int:
 			var got int
 			if err := converToInt(value, &got); err != nil {
-				return err
+				return fmt.Errorf("can't parse %s env to int: %w", key, err)
 			}
 			v.Set(reflect.ValueOf(got))
 		case reflect.Int64:
 			var got int64
 			if err := converToInt(value, &got); err != nil {
-				return err
+				return fmt.Errorf("can't parse %s env to int64: %w", key, err)
 			}
 			v.Set(reflect.ValueOf(got))
 		case reflect.String:

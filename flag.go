@@ -52,18 +52,18 @@ func (s *flagSource) Setup(t reflect.Type) error {
 		switch v.Kind() {
 		case reflect.Int:
 			nv := &nullInt[int]{}
-			s.flagset.TextVar(nv, key, &nullInt[int]{}, "")
 			nv.index = index
+			s.flagset.TextVar(nv, key, nv, "")
 			s.values = append(s.values, nv)
 		case reflect.Int64:
 			nv := &nullInt[int64]{}
-			s.flagset.TextVar(nv, key, &nullInt[int]{}, "")
 			nv.index = index
+			s.flagset.TextVar(nv, key, nv, "")
 			s.values = append(s.values, nv)
 		case reflect.String:
 			nv := &nullString{}
-			s.flagset.TextVar(nv, key, &nullString{}, "")
 			nv.index = index
+			s.flagset.TextVar(nv, key, nv, "")
 			s.values = append(s.values, nv)
 		default:
 			panic("unknown type " + v.Type().String())
