@@ -39,8 +39,8 @@ func (s *envSource) Setup(t reflect.Type) error {
 }
 
 func (s *envSource) Parse(ctx context.Context, v any) error {
-	return walkFields(reflect.ValueOf(v), s.prefix, s.splitter, nil, func(key string, index []int, v reflect.Value) error {
-		key = strings.ToUpper(key)
+	return walkFields(reflect.ValueOf(v), s.prefix, s.splitter, nil, func(meta fieldMeta, v reflect.Value) error {
+		key := strings.ToUpper(meta.FullKey)
 
 		value, ok := os.LookupEnv(key)
 		if !ok {

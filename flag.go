@@ -46,8 +46,10 @@ func FromFlag(prefix string, opt ...FlagOption) Source {
 }
 
 func (s *flagSource) Setup(t reflect.Type) error {
-	return walkFields(reflect.New(t), s.prefix, s.splitter, nil, func(key string, index []int, v reflect.Value) error {
+	return walkFields(reflect.New(t), s.prefix, s.splitter, nil, func(meta fieldMeta, v reflect.Value) error {
 		v = digPtr(v)
+		key := meta.FullKey
+		index := meta.Index
 
 		switch v.Kind() {
 		case reflect.Int:
