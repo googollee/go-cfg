@@ -14,6 +14,7 @@ type flagValue interface {
 	Valid() bool
 	CopyTo(value reflect.Value) bool
 	UnmarshalText(text []byte) error
+	MarshalText() ([]byte, error)
 }
 
 type nullBase struct {

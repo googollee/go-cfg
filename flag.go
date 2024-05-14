@@ -3,6 +3,7 @@ package cfg
 import (
 	"context"
 	"flag"
+	"fmt"
 	"reflect"
 )
 
@@ -48,28 +49,34 @@ func FromFlag(prefix string, opt ...FlagOption) Source {
 func (s *flagSource) Setup(t reflect.Type) error {
 	return walkFields(reflect.New(t), s.prefix, s.splitter, nil, func(meta fieldMeta, v reflect.Value) error {
 		v = digPtr(v)
-		key := meta.FullKey
-		index := meta.Index
 
+		var flagValue flagValue
 		switch v.Kind() {
 		case reflect.Int:
 			nv := &nullInt[int]{}
-			nv.index = index
-			s.flagset.TextVar(nv, key, nv, "")
-			s.values = append(s.values, nv)
+			nv.index = meta.Index
+			flagValue = nv
 		case reflect.Int64:
 			nv := &nullInt[int64]{}
-			nv.index = index
-			s.flagset.TextVar(nv, key, nv, "")
-			s.values = append(s.values, nv)
+			nv.index = meta.Index
+			flagValue = nv
 		case reflect.String:
 			nv := &nullString{}
-			nv.index = index
-			s.flagset.TextVar(nv, key, nv, "")
-			s.values = append(s.values, nv)
+			nv.index = meta.Index
+			flagValue = nv
 		default:
 			panic("unknown type " + v.Type().String())
 		}
+
+		if meta.Default != "" {
+			if err := flagValue.UnmarshalText([]byte(meta.Default)); err != nil {
+				return fmt.Errorf("default value %q for flag %q error: %w", meta.Default, meta.FullKey, err)
+			}
+		}
+
+		s.flagset.TextVar(flagValue, meta.FullKey, flagValue, "")
+		s.values = append(s.values, flagValue)
+
 		return nil
 	})
 }
