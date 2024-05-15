@@ -86,9 +86,7 @@ func (s *flagSource) Parse(ctx context.Context, v any) error {
 		fieldValue := value.FieldByIndex(flagValue.Index())
 
 		if !flagValue.Valid() {
-			if !fieldValue.IsZero() {
-				continue
-			}
+			continue
 		}
 
 		flagValue.CopyTo(fieldValue)
