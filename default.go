@@ -7,12 +7,12 @@ import (
 )
 
 type defaultSource struct {
-	values map[string]flagValue
+	values map[string]nullValue
 }
 
 func fromDefault() Source {
 	return &defaultSource{
-		values: make(map[string]flagValue),
+		values: make(map[string]nullValue),
 	}
 }
 
@@ -20,7 +20,7 @@ func (s *defaultSource) Setup(t reflect.Type) error {
 	v := reflect.New(t)
 
 	return walkFields(v, "", ".", nil, func(meta fieldMeta, v reflect.Value) error {
-		var fv flagValue
+		var fv nullValue
 		switch v.Kind() {
 		case reflect.Int:
 			fv = &nullInt[int]{}

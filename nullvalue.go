@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-type flagValue interface {
+type nullValue interface {
 	Init(index []int)
 	Index() []int
 	Valid() bool
