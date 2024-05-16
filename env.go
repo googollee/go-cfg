@@ -49,24 +49,12 @@ func (s *envSource) Parse(ctx context.Context, v any) error {
 
 		v = digPtr(v)
 
-		switch v.Kind() {
-		case reflect.Int:
-			var got int
-			if err := converToInt(value, &got); err != nil {
-				return fmt.Errorf("can't parse %s env to int: %w", key, err)
-			}
-			v.Set(reflect.ValueOf(got))
-		case reflect.Int64:
-			var got int64
-			if err := converToInt(value, &got); err != nil {
-				return fmt.Errorf("can't parse %s env to int64: %w", key, err)
-			}
-			v.Set(reflect.ValueOf(got))
-		case reflect.String:
-			var got string
-			got = value
-			v.Set(reflect.ValueOf(got))
+		nv := newNullValue(v.Kind())
+		if err := nv.UnmarshalText([]byte(value)); err != nil {
+			return fmt.Errorf("can't parse value %q of env %q: %w", value, key, err)
 		}
+
+		nv.CopyTo(v)
 
 		return nil
 	})

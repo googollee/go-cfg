@@ -20,23 +20,15 @@ func (s *defaultSource) Setup(t reflect.Type) error {
 	v := reflect.New(t)
 
 	return walkFields(v, "", ".", nil, func(meta fieldMeta, v reflect.Value) error {
-		var fv nullValue
-		switch v.Kind() {
-		case reflect.Int:
-			fv = &nullInt[int]{}
-		case reflect.Int64:
-			fv = &nullInt[int64]{}
-		case reflect.String:
-			fv = &nullString{}
-		}
+		nv := newNullValue(v.Kind())
 
 		if meta.Default != "" {
-			if err := fv.UnmarshalText([]byte(meta.Default)); err != nil {
-				return fmt.Errorf("can't parse default value for key %q: %w", meta.Key, err)
+			if err := nv.UnmarshalText([]byte(meta.Default)); err != nil {
+				return fmt.Errorf("can't parse default value %q for field %q: %w", meta.Default, meta.FullKey, err)
 			}
 		}
 
-		s.values[meta.FullKey] = fv
+		s.values[meta.FullKey] = nv
 
 		return nil
 	})

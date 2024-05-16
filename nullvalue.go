@@ -18,6 +18,21 @@ type nullValue interface {
 	MarshalText() ([]byte, error)
 }
 
+func newNullValue(kind reflect.Kind) nullValue {
+	var ret nullValue
+
+	switch kind {
+	case reflect.Int:
+		ret = &nullInt[int]{}
+	case reflect.Int64:
+		ret = &nullInt[int64]{}
+	case reflect.String:
+		ret = &nullString{}
+	}
+
+	return ret
+}
+
 type nullBase struct {
 	index []int
 	valid bool

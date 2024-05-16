@@ -50,30 +50,17 @@ func (s *flagSource) Setup(t reflect.Type) error {
 	return walkFields(reflect.New(t), s.prefix, s.splitter, nil, func(meta fieldMeta, v reflect.Value) error {
 		v = digPtr(v)
 
-		var flagValue nullValue
-		switch v.Kind() {
-		case reflect.Int:
-			nv := &nullInt[int]{}
-			flagValue = nv
-		case reflect.Int64:
-			nv := &nullInt[int64]{}
-			flagValue = nv
-		case reflect.String:
-			nv := &nullString{}
-			flagValue = nv
-		default:
-			panic("unknown type " + v.Type().String())
-		}
+		nv := newNullValue(v.Kind())
 
 		if meta.Default != "" {
-			if err := flagValue.UnmarshalText([]byte(meta.Default)); err != nil {
-				return fmt.Errorf("default value %q for flag %q error: %w", meta.Default, meta.FullKey, err)
+			if err := nv.UnmarshalText([]byte(meta.Default)); err != nil {
+				return fmt.Errorf("can't parse default value %q for flag %q: %w", meta.Default, meta.FullKey, err)
 			}
 		}
 
-		s.flagset.TextVar(flagValue, meta.FullKey, flagValue, meta.Usage)
-		flagValue.Init(meta.Index)
-		s.values = append(s.values, flagValue)
+		s.flagset.TextVar(nv, meta.FullKey, nv, meta.Usage)
+		nv.Init(meta.Index)
+		s.values = append(s.values, nv)
 
 		return nil
 	})
