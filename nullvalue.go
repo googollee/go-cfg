@@ -30,20 +30,30 @@ var (
 )
 
 func newNullValue(t reflect.Type) nullValue {
-	if t == durationType {
-		return &nullDuration{}
-	}
-
 	if t.Implements(textInterface) {
+		if t.Kind() == reflect.Ptr {
+			t = t.Elem()
+		}
 		return &nullText{
 			value: reflect.New(t).Interface().(textValue),
 		}
 	}
 
 	if t.Implements(flagValueInterface) {
+		if t.Kind() == reflect.Ptr {
+			t = t.Elem()
+		}
 		return &nullFlagValue{
 			value: reflect.New(t).Interface().(flag.Value),
 		}
+	}
+
+	if t.Kind() == reflect.Ptr {
+		t = t.Elem()
+	}
+
+	if t == durationType {
+		return &nullDuration{}
 	}
 
 	switch t.Kind() {
@@ -85,6 +95,14 @@ type nullText struct {
 
 func (nv *nullText) CopyTo(value reflect.Value) bool {
 	src := reflect.ValueOf(nv.value)
+	if src.Kind() == reflect.Ptr {
+		src = src.Elem()
+	}
+
+	if value.Kind() == reflect.Ptr {
+		value = value.Elem()
+	}
+
 	if !src.Type().AssignableTo(value.Type()) {
 		return false
 	}
@@ -95,7 +113,7 @@ func (nv *nullText) CopyTo(value reflect.Value) bool {
 
 func (nv *nullText) UnmarshalText(text []byte) error {
 	nv.valid = true
-	return nv.UnmarshalText(text)
+	return nv.value.UnmarshalText(text)
 }
 
 func (nv *nullText) MarshalText() ([]byte, error) {
@@ -113,6 +131,14 @@ type nullFlagValue struct {
 
 func (nv *nullFlagValue) CopyTo(value reflect.Value) bool {
 	src := reflect.ValueOf(nv.value)
+	if src.Kind() == reflect.Ptr {
+		src = src.Elem()
+	}
+
+	if value.Kind() == reflect.Ptr {
+		value = value.Elem()
+	}
+
 	if !src.Type().AssignableTo(value.Type()) {
 		return false
 	}
@@ -225,7 +251,7 @@ func (nv *nullDuration) MarshalText() ([]byte, error) {
 		return nil, nil
 	}
 
-	return []byte(fmt.Sprintf("%s", nv.value)), nil
+	return []byte(nv.value.String()), nil
 }
 
 type nullInt[T interface {
@@ -249,8 +275,10 @@ func (nv *nullInt[T]) CopyTo(value reflect.Value) bool {
 		value.Set(reflect.ValueOf(int32(nv.value)))
 	case reflect.Int64:
 		value.Set(reflect.ValueOf(int64(nv.value)))
+	default:
+		return false
 	}
-	return false
+	return true
 }
 
 func (nv *nullInt[T]) UnmarshalText(text []byte) error {
@@ -284,18 +312,21 @@ func (nv *nullUint[T]) CopyTo(value reflect.Value) bool {
 	value = digPtr(value)
 
 	switch value.Kind() {
-	case reflect.Int:
+	case reflect.Uint:
 		value.Set(reflect.ValueOf(uint(nv.value)))
-	case reflect.Int8:
+	case reflect.Uint8:
 		value.Set(reflect.ValueOf(uint8(nv.value)))
-	case reflect.Int16:
+	case reflect.Uint16:
 		value.Set(reflect.ValueOf(uint16(nv.value)))
-	case reflect.Int32:
+	case reflect.Uint32:
 		value.Set(reflect.ValueOf(uint32(nv.value)))
-	case reflect.Int64:
+	case reflect.Uint64:
 		value.Set(reflect.ValueOf(uint64(nv.value)))
+	default:
+		return false
 	}
-	return false
+
+	return true
 }
 
 func (nv *nullUint[T]) UnmarshalText(text []byte) error {
@@ -332,8 +363,11 @@ func (nv *nullFloat[T]) CopyTo(value reflect.Value) bool {
 		value.Set(reflect.ValueOf(float32(nv.value)))
 	case reflect.Float64:
 		value.Set(reflect.ValueOf(float64(nv.value)))
+	default:
+		return false
 	}
-	return false
+
+	return true
 }
 
 func (nv *nullFloat[T]) UnmarshalText(text []byte) error {
