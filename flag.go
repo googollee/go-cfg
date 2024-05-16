@@ -50,7 +50,7 @@ func (s *flagSource) Setup(t reflect.Type) error {
 	return walkFields(reflect.New(t), s.prefix, s.splitter, nil, func(meta fieldMeta, v reflect.Value) error {
 		v = digPtr(v)
 
-		nv := newNullValue(v.Kind())
+		nv := newNullValue(v.Type())
 
 		if meta.Default != "" {
 			if err := nv.UnmarshalText([]byte(meta.Default)); err != nil {

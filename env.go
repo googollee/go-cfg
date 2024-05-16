@@ -49,7 +49,7 @@ func (s *envSource) Parse(ctx context.Context, v any) error {
 
 		v = digPtr(v)
 
-		nv := newNullValue(v.Kind())
+		nv := newNullValue(v.Type())
 		if err := nv.UnmarshalText([]byte(value)); err != nil {
 			return fmt.Errorf("can't parse value %q of env %q: %w", value, key, err)
 		}

@@ -2,6 +2,7 @@ package cfg
 
 import (
 	"encoding"
+	"flag"
 	"fmt"
 	"reflect"
 	"strconv"
@@ -9,28 +10,60 @@ import (
 	"time"
 )
 
+type textValue interface {
+	encoding.TextMarshaler
+	encoding.TextUnmarshaler
+}
+
 type nullValue interface {
 	Init(index []int)
 	Index() []int
 	Valid() bool
 	CopyTo(value reflect.Value) bool
-	UnmarshalText(text []byte) error
-	MarshalText() ([]byte, error)
+	textValue
 }
 
-func newNullValue(kind reflect.Kind) nullValue {
-	var ret nullValue
+var (
+	durationType       = reflect.TypeOf((*time.Duration)(nil)).Elem()
+	textInterface      = reflect.TypeOf((*textValue)(nil)).Elem()
+	flagValueInterface = reflect.TypeOf((*flag.Value)(nil)).Elem()
+)
 
-	switch kind {
-	case reflect.Int:
-		ret = &nullInt[int]{}
-	case reflect.Int64:
-		ret = &nullInt[int64]{}
-	case reflect.String:
-		ret = &nullString{}
+func newNullValue(t reflect.Type) nullValue {
+	if t == durationType {
+		return &nullDuration{}
 	}
 
-	return ret
+	if t.Implements(textInterface) {
+		return &nullText{
+			value: reflect.New(t).Interface().(textValue),
+		}
+	}
+
+	if t.Implements(flagValueInterface) {
+		return &nullFlagValue{
+			value: reflect.New(t).Interface().(flag.Value),
+		}
+	}
+
+	switch t.Kind() {
+	case reflect.Int:
+		return &nullInt[int]{}
+	case reflect.Int64:
+		return &nullInt[int64]{}
+	case reflect.Uint:
+		return &nullUint[uint]{}
+	case reflect.Uint64:
+		return &nullUint[uint64]{}
+	case reflect.Float64:
+		return &nullFloat[float64]{}
+	case reflect.Bool:
+		return &nullBool{}
+	case reflect.String:
+		return &nullString{}
+	}
+
+	return nil
 }
 
 type nullBase struct {
@@ -47,10 +80,7 @@ func (nb *nullBase) Init(index []int) {
 
 type nullText struct {
 	nullBase
-	value interface {
-		encoding.TextMarshaler
-		encoding.TextUnmarshaler
-	}
+	value textValue
 }
 
 func (nv *nullText) CopyTo(value reflect.Value) bool {
@@ -74,6 +104,29 @@ func (nv *nullText) MarshalText() ([]byte, error) {
 	}
 
 	return nv.value.MarshalText()
+}
+
+type nullFlagValue struct {
+	nullBase
+	value flag.Value
+}
+
+func (nv *nullFlagValue) CopyTo(value reflect.Value) bool {
+	src := reflect.ValueOf(nv.value)
+	if !src.Type().AssignableTo(value.Type()) {
+		return false
+	}
+
+	value.Set(src)
+	return true
+}
+
+func (nv *nullFlagValue) UnmarshalText(text []byte) error {
+	return nv.value.Set(string(text))
+}
+
+func (nv *nullFlagValue) MarshalText() ([]byte, error) {
+	return []byte(nv.value.String()), nil
 }
 
 type nullString struct {
@@ -202,13 +255,21 @@ func (nv *nullInt[T]) CopyTo(value reflect.Value) bool {
 
 func (nv *nullInt[T]) UnmarshalText(text []byte) error {
 	nv.valid = true
-	return converToInt(string(text), &nv.value)
+	str := string(text)
+
+	i, err := strconv.ParseInt(str, 10, 64)
+	if err != nil {
+		return fmt.Errorf("convert %q to int error: %w", str, err)
+	}
+	nv.value = T(i)
+	return nil
 }
 
 func (nv *nullInt[T]) MarshalText() ([]byte, error) {
 	if !nv.valid {
 		return nil, nil
 	}
+
 	return []byte(fmt.Sprintf("%d", nv.value)), nil
 }
 
@@ -239,7 +300,14 @@ func (nv *nullUint[T]) CopyTo(value reflect.Value) bool {
 
 func (nv *nullUint[T]) UnmarshalText(text []byte) error {
 	nv.valid = true
-	return converToUint(string(text), &nv.value)
+	str := string(text)
+
+	i, err := strconv.ParseUint(str, 10, 64)
+	if err != nil {
+		return fmt.Errorf("convert %q to int error: %w", str, err)
+	}
+	nv.value = T(i)
+	return nil
 }
 
 func (nv *nullUint[T]) MarshalText() ([]byte, error) {
@@ -270,7 +338,14 @@ func (nv *nullFloat[T]) CopyTo(value reflect.Value) bool {
 
 func (nv *nullFloat[T]) UnmarshalText(text []byte) error {
 	nv.valid = true
-	return converToFloat(string(text), &nv.value)
+	str := string(text)
+
+	f, err := strconv.ParseFloat(str, 64)
+	if err != nil {
+		return fmt.Errorf("convert %q to float error: %w", str, err)
+	}
+	nv.value = T(f)
+	return nil
 }
 
 func (nv *nullFloat[T]) MarshalText() ([]byte, error) {
@@ -278,39 +353,6 @@ func (nv *nullFloat[T]) MarshalText() ([]byte, error) {
 		return nil, nil
 	}
 	return []byte(fmt.Sprintf("%g", nv.value)), nil
-}
-
-func converToFloat[T interface {
-	~float32 | ~float64
-}](str string, v *T) error {
-	f, err := strconv.ParseFloat(str, 64)
-	if err != nil {
-		return fmt.Errorf("convert %q to float error: %w", str, err)
-	}
-	*v = T(f)
-	return nil
-}
-
-func converToInt[T interface {
-	~int | ~int8 | ~int16 | ~int32 | ~int64
-}](str string, v *T) error {
-	i, err := strconv.ParseInt(str, 10, 64)
-	if err != nil {
-		return fmt.Errorf("convert %q to int error: %w", str, err)
-	}
-	*v = T(i)
-	return nil
-}
-
-func converToUint[T interface {
-	~uint | ~uint8 | ~uint16 | ~uint32 | ~uint64
-}](str string, v *T) error {
-	i, err := strconv.ParseUint(str, 10, 64)
-	if err != nil {
-		return fmt.Errorf("convert %q to uint error: %w", str, err)
-	}
-	*v = T(i)
-	return nil
 }
 
 func digPtr(v reflect.Value) reflect.Value {

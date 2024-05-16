@@ -20,7 +20,7 @@ func (s *defaultSource) Setup(t reflect.Type) error {
 	v := reflect.New(t)
 
 	return walkFields(v, "", ".", nil, func(meta fieldMeta, v reflect.Value) error {
-		nv := newNullValue(v.Kind())
+		nv := newNullValue(v.Type())
 
 		if meta.Default != "" {
 			if err := nv.UnmarshalText([]byte(meta.Default)); err != nil {
