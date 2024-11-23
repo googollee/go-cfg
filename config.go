@@ -2,9 +2,9 @@
 //
 // Usage:
 //
-// - Register functions ([RegisterInitializer] and [RegisterValue]) should be called in `init()` of a package, before [Init] calls.
-// - [Init] function should be called at the beginning of `main()`, before calling functions in other sub-packages.
-//   - It must not be called in `init()`, because other sub-packages may not be initialized at that time.
+//   - Register functions ([RegisterInitializer] and [RegisterValue]) should be called in `init()` of a package, before [Init] calls.
+//   - [Init] function should be called at the beginning of `main()`, before calling functions in other sub-packages.
+//   - [Init] function must not be called in `init()`, because other sub-packages may not be initialized at that time.
 package cfg
 
 import "context"
