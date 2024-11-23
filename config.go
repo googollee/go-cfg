@@ -19,6 +19,8 @@ func RegisterValue[T any](name string, value *T) (getter func(ctx context.Contex
 }
 
 // Init parses configuration from a file, environment or flags. It returns a new context which could be used to retreive values registered with [RegisterValue].
+//
+// This function should be called at the beginning of `main()`, before calling functions in other sub-packages. It must be not called in `init()`, because other sub-packages may not be initialized at that time.
 func Init(ctx context.Context) (context.Context, error) {
 	return nil, nil
 }
