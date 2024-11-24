@@ -3,7 +3,7 @@ package cfg implements a framework to load/parse configuration from a file, envi
 
 Usage:
 
-  - Register functions ([RegisterInitializer] and [RegisterValue]) should be called in `init()` of a package, before [Init] calls.
+  - Register functions ([RegisterInitializer] and [RegisterStruct]) should be called in `init()` of a package, or before [Init] calls.
   - [Init] function should be called at the beginning of `main()`, before calling functions in other sub-packages.
   - [Init] function must not be called in `init()`, because other sub-packages may not be initialized at that time.
 */
@@ -42,14 +42,14 @@ Example:
 func RegisterInitializer[T Initializer](name string) {}
 
 /*
-RegisterValue registers an instance `value` with the `name` as the scope name and returns a function to get parsed `value` from the context. [Init] function parses configuration from a file, environment or flags, stores into `value`, then call `value.Init()`.
+RegisterStruct registers an instance `value` with the `name` as the scope name and returns a function to get parsed `value` from the context. [Init] function parses configuration from a file, environment or flags, stores into `value`, then call `value.Init()`.
 
 Example:
 
 	package main
 
 	func main() {
-		dbConfig := cfg.RegisterValue[db.Config]("database")
+		dbConfig := cfg.RegisterStruct[db.Config]("database")
 
 		ctx, err := cfg.Init(context.Background())
 		if err != nil {
@@ -59,11 +59,11 @@ Example:
 		db := database.New(dbConfig(ctx))
 	}
 */
-func RegisterValue[T any](name string) (getter func(ctx context.Context) *T) {
+func RegisterStruct[T any](name string) (getter func(ctx context.Context) *T) {
 	return
 }
 
-// Init parses configuration from a file, environment or flags. It returns a new context which could be used to retreive values registered with [RegisterValue].
+// Init parses configuration from a file, environment or flags. It returns a new context which could be used to retreive values registered with [RegisterStruct].
 func Init(ctx context.Context) (context.Context, error) {
 	return nil, nil
 }
